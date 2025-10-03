@@ -1,4 +1,4 @@
-# Fastify Community Posts
+# Fastify Social Posts
 
 This repository is the collaborative space for drafting, reviewing, and publishing **Fastify community content**.
 Posts may be shared on **LinkedIn, the Fastify blog, and other social platforms**.
