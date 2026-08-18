@@ -6,7 +6,7 @@ We rebuilt it from scratch. Quick tour:
 * **Pagefind-powered search**, version-aware across the whole site. Searching from a v5.10.x docs page gives you v5.10.x results, not every minor we've ever shipped.
 * Built with **Astro** + **Tailwind CSS v4** + **MDX** + **Pagefind**, linted with **Biome**.
 
-A redesign only lands because of the people behind it. Thank you Matteo Pietro Dazzi, Manuel Spigolon, Antonio Tripodi, Gürgün Dayıoğlu, Jean Michelet, Carlos Fuentes, KaKa, and Luca Del Puppo — reviews, fixes, the whole thing.
+A redesign only lands because of the people behind it. Thank you Matteo Pietro Dazzi, Manuel Spigolon, Antonio Tripodi, Gürgün Dayıoğlu, Jean Michelet, Carlos Fuentes, KaKa, and Luca Del Puppo: reviews, fixes, the whole thing.
 
 If something looks off or a link 404s, that's a bug, not a feature. Open an issue on https://github.com/fastify/website and we'll fix it.
 
