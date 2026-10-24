@@ -1,0 +1,92 @@
+name: Publish LinkedIn posts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'linkedin/**.md'
+  pull_request:
+    paths:
+      - 'linkedin/**.md'
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'Post to publish (e.g. linkedin/5-my-post.md)'
+        required: true
+        type: string
+      dry-run:
+        description: 'Only print the rendered post'
+        default: true
+        type: boolean
+
+concurrency:
+  group: publish-linkedin-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Renders new posts on pull requests, so reviewers can check the final text
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+
+      - name: Render new posts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only --diff-filter=A "$BASE_SHA" "$HEAD_SHA" -- 'linkedin/*.md' \
+            | sort | xargs node scripts/publish-linkedin.mjs --dry-run
+
+  publish:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: linkedin
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+
+      - name: Find new posts
+        id: posts
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          INPUT_FILE: ${{ inputs.file }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            files="$INPUT_FILE"
+          else
+            # Only newly added posts: edits to already published posts are ignored
+            files=$(git diff --name-only --diff-filter=A "$BEFORE_SHA" "$AFTER_SHA" -- 'linkedin/*.md' | sort | tr '\n' ' ')
+          fi
+          echo "Posts to publish: ${files:-none}"
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to LinkedIn
+        if: steps.posts.outputs.files != ''
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_ORGANIZATION_ID: ${{ vars.LINKEDIN_ORGANIZATION_ID }}
+          LINKEDIN_API_VERSION: ${{ vars.LINKEDIN_API_VERSION }}
+          DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
+          FILES: ${{ steps.posts.outputs.files }}
+        run: node scripts/publish-linkedin.mjs $DRY_RUN $FILES
